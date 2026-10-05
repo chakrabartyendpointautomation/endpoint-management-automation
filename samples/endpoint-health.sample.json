@@ -1,0 +1,44 @@
+{
+  "GeneratedAtUtc": "2026-01-15T10:30:00.0000000+00:00",
+  "StaleAfterDays": 30,
+  "TotalManagedDevices": 2,
+  "NonCompliantDevices": 1,
+  "StaleDevices": 1,
+  "UnknownLastSyncDevices": 0,
+  "Devices": [
+    {
+      "DeviceName": "DEMO-WIN-014",
+      "OperatingSystem": "Windows",
+      "OSVersion": "10.0.22631.0",
+      "ComplianceState": "compliant",
+      "LastSyncUtc": "2026-01-14T09:15:00.0000000+00:00",
+      "IsStale": false,
+      "LastSyncUnknown": false,
+      "UserPrincipalName": "demo.user@example.invalid",
+      "SerialNumber": "SYNTHETIC-0001",
+      "Manufacturer": "Example Manufacturer",
+      "Model": "Example Model",
+      "IntuneManagedDeviceId": "00000000-0000-0000-0000-000000000001",
+      "EntraDeviceId": "00000000-0000-0000-0000-000000000011",
+      "EntraTrustType": "AzureAd",
+      "EntraAccountEnabled": true
+    },
+    {
+      "DeviceName": "DEMO-MAC-002",
+      "OperatingSystem": "macOS",
+      "OSVersion": "14.2",
+      "ComplianceState": "noncompliant",
+      "LastSyncUtc": "2025-11-20T08:00:00.0000000+00:00",
+      "IsStale": true,
+      "LastSyncUnknown": false,
+      "UserPrincipalName": "demo.admin@example.invalid",
+      "SerialNumber": "SYNTHETIC-0002",
+      "Manufacturer": "Example Manufacturer",
+      "Model": "Example Laptop",
+      "IntuneManagedDeviceId": "00000000-0000-0000-0000-000000000002",
+      "EntraDeviceId": null,
+      "EntraTrustType": null,
+      "EntraAccountEnabled": null
+    }
+  ]
+}

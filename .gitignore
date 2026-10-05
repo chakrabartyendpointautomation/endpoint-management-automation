@@ -1,0 +1,11 @@
+# Tenant exports and local operator output
+reports/
+*.csv
+*.json
+!samples/*.sample.json
+
+# PowerShell/editor artifacts
+*.ps1xml
+*.clixml
+.DS_Store
+Thumbs.db
