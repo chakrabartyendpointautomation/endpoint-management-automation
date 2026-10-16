@@ -2,9 +2,7 @@ Set-StrictMode -Version Latest
 
 function Connect-EndpointGraph {
     [CmdletBinding()]
-    param(
-        [string[]] $Scopes = @('DeviceManagementManagedDevices.Read.All', 'Directory.Read.All')
-    )
+    param([string[]] $Scopes = @('DeviceManagementManagedDevices.Read.All', 'Directory.Read.All'))
     if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Authentication)) {
         throw 'Microsoft.Graph.Authentication is required. Install it with: Install-Module Microsoft.Graph.Authentication -Scope CurrentUser'
     }
@@ -15,9 +13,7 @@ function Connect-EndpointGraph {
         if (-not $context) { throw 'Graph authentication completed without an available context.' }
         Write-Verbose "Connected to Microsoft Graph as $($context.Account) in tenant $($context.TenantId)."
     }
-    catch {
-        throw "Microsoft Graph sign-in failed: $($_.Exception.Message)"
-    }
+    catch { throw "Microsoft Graph sign-in failed: $($_.Exception.Message)" }
 }
 
 function Disconnect-EndpointGraph {
@@ -37,12 +33,8 @@ function Get-EndpointGraphCollection {
     while ($next) {
         $pageNumber++
         Write-Verbose "Requesting Graph collection page $pageNumber."
-        try {
-            $page = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType PSObject -ErrorAction Stop
-        }
-        catch {
-            throw "Graph request failed for '$next': $($_.Exception.Message)"
-        }
+        try { $page = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType PSObject -ErrorAction Stop }
+        catch { throw "Graph request failed for '$next': $($_.Exception.Message)" }
         foreach ($item in @($page.value)) { $items.Add($item) }
         $next = $page.'@odata.nextLink'
     }
@@ -56,8 +48,7 @@ function Get-EndpointHealthReport {
         throw 'Connect to Microsoft Graph first by calling Connect-EndpointGraph.'
     }
     $select = 'id,deviceName,operatingSystem,osVersion,complianceState,lastSyncDateTime,azureADDeviceId,userPrincipalName,serialNumber,manufacturer,model'
-    $encodedSelect = [uri]::EscapeDataString($select)
-    $managedUri = 'https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$select=' + $encodedSelect + '&$top=100'
+    $managedUri = 'https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$select=' + [uri]::EscapeDataString($select) + '&$top=100'
     $directoryUri = 'https://graph.microsoft.com/v1.0/devices?$select=id,deviceId,displayName,accountEnabled,trustType&$top=100'
     $managedDevices = @(Get-EndpointGraphCollection -Uri $managedUri)
     $directoryDevices = @(Get-EndpointGraphCollection -Uri $directoryUri)
@@ -113,14 +104,13 @@ function Get-IntuneAppInventoryReport {
     if (-not (Get-Command Get-MgContext -ErrorAction SilentlyContinue) -or -not (Get-MgContext)) {
         throw 'Connect to Microsoft Graph first by calling Connect-EndpointGraph.'
     }
-    $uri = 'https://graph.microsoft.com/v1.0/deviceAppManagement/mobileApps?$select=id,displayName,publisher,isAssigned,createdDateTime,lastModifiedDateTime,publishingState&$top=100'
+    $uri = 'https://graph.microsoft.com/v1.0/deviceAppManagement/mobileApps?$select=id,displayName,publisher,createdDateTime,lastModifiedDateTime,publishingState&$top=100'
     $apps = @(Get-EndpointGraphCollection -Uri $uri)
     $items = foreach ($app in $apps) {
         [pscustomobject]@{
             Id = [string]$app.id
             DisplayName = [string]$app.displayName
             Publisher = [string]$app.publisher
-            IsAssigned = if ($null -ne $app.isAssigned) { [bool]$app.isAssigned } else { $null }
             PublishingState = [string]$app.publishingState
             CreatedDateTime = [string]$app.createdDateTime
             LastModifiedDateTime = [string]$app.lastModifiedDateTime
@@ -131,9 +121,6 @@ function Get-IntuneAppInventoryReport {
         GeneratedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
         Source = 'Microsoft Graph v1.0 deviceAppManagement/mobileApps'
         TotalApps = $itemList.Count
-        AssignedApps = @($itemList | Where-Object { $_.IsAssigned -eq $true }).Count
-        UnassignedApps = @($itemList | Where-Object { $_.IsAssigned -eq $false }).Count
-        UnknownAssignmentStateApps = @($itemList | Where-Object { $null -eq $_.IsAssigned }).Count
         Items = $itemList
     }
 }
@@ -174,17 +161,16 @@ function Export-GraphCollectionReport {
     $collectionProperty = $Report.PSObject.Properties['Items']
     if (-not $collectionProperty) { $collectionProperty = $Report.PSObject.Properties['Devices'] }
     if (-not $collectionProperty) { throw 'Report must contain an Items or Devices collection.' }
-
     $items = @($collectionProperty.Value)
     $resolved = [System.IO.Path]::GetFullPath($Path)
     $directory = [System.IO.Path]::GetDirectoryName($resolved)
-    if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
-        $null = New-Item -Path $directory -ItemType Directory -Force -ErrorAction Stop
-    }
     $jsonPath = "$resolved.json"
     $csvPath = "$resolved.csv"
     if ($PSCmdlet.ShouldProcess("$jsonPath and $csvPath", 'Write Graph report files')) {
         try {
+            if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+                $null = New-Item -Path $directory -ItemType Directory -Force -ErrorAction Stop
+            }
             $Report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $jsonPath -Encoding utf8 -ErrorAction Stop
             if ($items.Count -gt 0) {
                 $items | Export-Csv -LiteralPath $csvPath -NoTypeInformation -Encoding utf8 -ErrorAction Stop
@@ -193,9 +179,7 @@ function Export-GraphCollectionReport {
             }
             [pscustomobject]@{ JsonPath = $jsonPath; CsvPath = $csvPath; ItemCount = $items.Count }
         }
-        catch {
-            throw "Could not write Graph report: $($_.Exception.Message)"
-        }
+        catch { throw "Could not write Graph report: $($_.Exception.Message)" }
     }
 }
 
@@ -218,9 +202,7 @@ function Export-EndpointHealthReport {
             @($Report.Devices) | Export-Csv -LiteralPath $csvPath -NoTypeInformation -Encoding utf8 -ErrorAction Stop
             [pscustomobject]@{ JsonPath = $jsonPath; CsvPath = $csvPath; DeviceCount = @($Report.Devices).Count }
         }
-        catch {
-            throw "Could not write endpoint health report: $($_.Exception.Message)"
-        }
+        catch { throw "Could not write endpoint health report: $($_.Exception.Message)" }
     }
 }
 
