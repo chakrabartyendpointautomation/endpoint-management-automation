@@ -6,25 +6,25 @@ The module uses interactive delegated authentication through Microsoft Graph Pow
 
 Install the authentication module:
 
-```powershell
-Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
-```
+    Install-Module Microsoft.Graph.Authentication -Scope CurrentUser
 
-`Connect-EndpointGraph` requests these delegated permissions:
+Connect-EndpointGraph defaults to the scopes used by the endpoint health report. Catalog reports use separate delegated read scopes. Pass only the scope required for the report being run.
 
 | Permission | Used for | Access level |
 | --- | --- | --- |
-| `DeviceManagementManagedDevices.Read.All` | Intune managed-device inventory and compliance/check-in properties | Read all managed devices |
-| `Directory.Read.All` | Entra device registration enrichment | Read directory objects |
+| DeviceManagementManagedDevices.Read.All | Intune managed-device inventory and compliance/check-in properties | Read managed devices |
+| Directory.Read.All | Entra device registration enrichment | Read directory objects |
+| DeviceManagementApps.Read.All | Intune mobile app catalog report | Read Intune apps |
+| DeviceManagementConfiguration.Read.All | Intune device configuration catalog report | Read Intune device configuration and policies |
 
-These are tenant-wide read permissions and require administrator consent in many tenants. Use a dedicated test tenant first, have an administrator review the consent request, and use an appropriately governed operator account. Directory read access is broad; if your tenant supports the needed device query with a narrower permission, adjust the requested scopes and validate the behavior before client use.
+The endpoint health scopes and the catalog scopes are not all requested by default. Example for the app catalog: Connect-EndpointGraph -Scopes @('DeviceManagementApps.Read.All'). Use DeviceManagementConfiguration.Read.All for the configuration catalog. Intune permission scopes require administrator access and may require admin consent; check current tenant and Microsoft documentation. Directory.Read.All is broad. If your tenant supports a narrower permission for the device query, review it and validate behavior before use.
 
 ## Operational guidance
 
 - Use the minimum permissions approved for the task and remove consent when the engagement ends, following the tenant's access process.
 - Do not put tenant IDs, account names, tokens, or exported client data into source control or public issue reports.
-- Device exports can be sensitive even though the scripts are read-only. Store them in an approved location and delete them according to the client's retention policy.
-- Follow conditional access, MFA, audit, and change-control requirements in the target tenant.
+- Device, app, and configuration exports can be sensitive even though the scripts are read-only. Store them in an approved location and delete them according to the tenant's retention policy.
+- Follow Conditional Access, MFA, audit, and change-control requirements in the target tenant.
 
 ## App-only authentication
 
