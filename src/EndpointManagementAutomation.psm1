@@ -51,15 +51,13 @@ function Get-EndpointGraphCollection {
 
 function Get-EndpointHealthReport {
     [CmdletBinding()]
-    param(
-        [ValidateRange(1, 3650)][int] $StaleAfterDays = 30
-    )
+    param([ValidateRange(1, 3650)][int] $StaleAfterDays = 30)
     if (-not (Get-Command Get-MgContext -ErrorAction SilentlyContinue) -or -not (Get-MgContext)) {
         throw 'Connect to Microsoft Graph first by calling Connect-EndpointGraph.'
     }
     $select = 'id,deviceName,operatingSystem,osVersion,complianceState,lastSyncDateTime,azureADDeviceId,userPrincipalName,serialNumber,manufacturer,model'
     $encodedSelect = [uri]::EscapeDataString($select)
-    $managedUri = "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?`$select=$encodedSelect&`$top=100"
+    $managedUri = 'https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?$select=' + $encodedSelect + '&$top=100'
     $directoryUri = 'https://graph.microsoft.com/v1.0/devices?$select=id,deviceId,displayName,accountEnabled,trustType&$top=100'
     $managedDevices = @(Get-EndpointGraphCollection -Uri $managedUri)
     $directoryDevices = @(Get-EndpointGraphCollection -Uri $directoryUri)
@@ -109,6 +107,98 @@ function Get-EndpointHealthReport {
     }
 }
 
+function Get-IntuneAppInventoryReport {
+    [CmdletBinding()]
+    param()
+    if (-not (Get-Command Get-MgContext -ErrorAction SilentlyContinue) -or -not (Get-MgContext)) {
+        throw 'Connect to Microsoft Graph first by calling Connect-EndpointGraph.'
+    }
+    $uri = 'https://graph.microsoft.com/v1.0/deviceAppManagement/mobileApps?$select=id,displayName,publisher,isAssigned,createdDateTime,lastModifiedDateTime,publishingState&$top=100'
+    $apps = @(Get-EndpointGraphCollection -Uri $uri)
+    $items = foreach ($app in $apps) {
+        [pscustomobject]@{
+            Id = [string]$app.id
+            DisplayName = [string]$app.displayName
+            Publisher = [string]$app.publisher
+            IsAssigned = if ($null -ne $app.isAssigned) { [bool]$app.isAssigned } else { $null }
+            PublishingState = [string]$app.publishingState
+            CreatedDateTime = [string]$app.createdDateTime
+            LastModifiedDateTime = [string]$app.lastModifiedDateTime
+        }
+    }
+    $itemList = @($items)
+    [pscustomobject]@{
+        GeneratedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
+        Source = 'Microsoft Graph v1.0 deviceAppManagement/mobileApps'
+        TotalApps = $itemList.Count
+        AssignedApps = @($itemList | Where-Object { $_.IsAssigned -eq $true }).Count
+        UnassignedApps = @($itemList | Where-Object { $_.IsAssigned -eq $false }).Count
+        UnknownAssignmentStateApps = @($itemList | Where-Object { $null -eq $_.IsAssigned }).Count
+        Items = $itemList
+    }
+}
+
+function Get-IntuneConfigurationInventoryReport {
+    [CmdletBinding()]
+    param()
+    if (-not (Get-Command Get-MgContext -ErrorAction SilentlyContinue) -or -not (Get-MgContext)) {
+        throw 'Connect to Microsoft Graph first by calling Connect-EndpointGraph.'
+    }
+    $uri = 'https://graph.microsoft.com/v1.0/deviceManagement/deviceConfigurations?$select=id,displayName,description,createdDateTime,lastModifiedDateTime,version&$top=100'
+    $configurations = @(Get-EndpointGraphCollection -Uri $uri)
+    $items = foreach ($configuration in $configurations) {
+        [pscustomobject]@{
+            Id = [string]$configuration.id
+            DisplayName = [string]$configuration.displayName
+            Description = [string]$configuration.description
+            CreatedDateTime = [string]$configuration.createdDateTime
+            LastModifiedDateTime = [string]$configuration.lastModifiedDateTime
+            Version = $configuration.version
+        }
+    }
+    $itemList = @($items)
+    [pscustomobject]@{
+        GeneratedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
+        Source = 'Microsoft Graph v1.0 deviceManagement/deviceConfigurations'
+        TotalConfigurations = $itemList.Count
+        Items = $itemList
+    }
+}
+
+function Export-GraphCollectionReport {
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Low')]
+    param(
+        [Parameter(Mandatory)][ValidateNotNull()][psobject] $Report,
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string] $Path
+    )
+    $collectionProperty = $Report.PSObject.Properties['Items']
+    if (-not $collectionProperty) { $collectionProperty = $Report.PSObject.Properties['Devices'] }
+    if (-not $collectionProperty) { throw 'Report must contain an Items or Devices collection.' }
+
+    $items = @($collectionProperty.Value)
+    $resolved = [System.IO.Path]::GetFullPath($Path)
+    $directory = [System.IO.Path]::GetDirectoryName($resolved)
+    if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+        $null = New-Item -Path $directory -ItemType Directory -Force -ErrorAction Stop
+    }
+    $jsonPath = "$resolved.json"
+    $csvPath = "$resolved.csv"
+    if ($PSCmdlet.ShouldProcess("$jsonPath and $csvPath", 'Write Graph report files')) {
+        try {
+            $Report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $jsonPath -Encoding utf8 -ErrorAction Stop
+            if ($items.Count -gt 0) {
+                $items | Export-Csv -LiteralPath $csvPath -NoTypeInformation -Encoding utf8 -ErrorAction Stop
+            } else {
+                Set-Content -LiteralPath $csvPath -Value '' -Encoding utf8 -ErrorAction Stop
+            }
+            [pscustomobject]@{ JsonPath = $jsonPath; CsvPath = $csvPath; ItemCount = $items.Count }
+        }
+        catch {
+            throw "Could not write Graph report: $($_.Exception.Message)"
+        }
+    }
+}
+
 function Export-EndpointHealthReport {
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Low')]
     param(
@@ -134,4 +224,4 @@ function Export-EndpointHealthReport {
     }
 }
 
-Export-ModuleMember -Function Connect-EndpointGraph, Disconnect-EndpointGraph, Get-EndpointHealthReport, Export-EndpointHealthReport
+Export-ModuleMember -Function Connect-EndpointGraph, Disconnect-EndpointGraph, Get-EndpointHealthReport, Get-IntuneAppInventoryReport, Get-IntuneConfigurationInventoryReport, Export-GraphCollectionReport, Export-EndpointHealthReport
