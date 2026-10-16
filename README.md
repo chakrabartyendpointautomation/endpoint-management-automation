@@ -8,11 +8,11 @@ Read-only-first PowerShell automation for Microsoft Intune and Entra ID, built o
 
 - Intune managed-device inventory and compliance state, enriched with matching Entra device registration details.
 - Stale check-ins, noncompliant devices, and devices with unknown last-sync values for human review.
-- Intune mobile app inventory, including publisher, publishing state, timestamps, and whether an app is assigned.
+- Intune mobile app inventory, including publisher, publishing state, and timestamps.
 - Intune device configuration inventory, including names, descriptions, timestamps, and version.
 - Timestamped JSON and CSV outputs; Graph collection calls use GET only and do not change tenant state.
 
-The app report does not retrieve assignment targets or per-device installation status. The configuration report does not retrieve full policy settings or device-level policy status. See [Intune reporting](docs/IntuneReporting.md) for scope requirements, usage, and limitations.
+The app report does not retrieve assignment targets, assignment state, or per-device installation status. The configuration report does not retrieve full policy settings or device-level policy status. See [Intune reporting](docs/IntuneReporting.md) for scope requirements, usage, and limitations.
 
 This repo complements the focused [PowerShell Endpoint Remediation Toolkit](https://github.com/chakrabartyendpointautomation/powershell-endpoint-remediation-toolkit) and [Intune Endpoint Health Assessment](https://github.com/chakrabartyendpointautomation/intune-endpoint-health-assessment). It focuses on reusable read-only Graph reporting, not local repair scripts or a full assessment deliverable.
 
