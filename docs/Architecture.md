@@ -13,7 +13,7 @@
 - Connect-EndpointGraph checks for Microsoft.Graph.Authentication and establishes delegated sign-in using the requested scopes. Its default scopes remain for the endpoint health report; use the app or configuration read scope for the corresponding catalog report.
 - Get-EndpointGraphCollection retrieves all pages from a Graph collection and turns Graph failures into surfaced errors.
 - Get-EndpointHealthReport joins Intune managed-device data with Entra device registration data. Staleness uses the caller's threshold; missing timestamps are counted separately. The Entra match is best-effort.
-- Get-IntuneAppInventoryReport collects base mobile app inventory and summarizes the Graph isAssigned flag. It does not collect assignment targets or per-device install state.
+- Get-IntuneAppInventoryReport collects base mobile app inventory fields: ID, display name, publisher, publishing state, and timestamps. It does not report assignment state, assignment targets, or per-device install state.
 - Get-IntuneConfigurationInventoryReport collects device configuration inventory metadata. It does not collect full policy settings or device-level status.
 - Export-GraphCollectionReport writes reports with Items or Devices collections as local JSON and CSV, with ShouldProcess support for file output.
 - Export-EndpointHealthReport remains the existing endpoint health export function.
